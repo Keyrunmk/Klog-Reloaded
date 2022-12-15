@@ -31,7 +31,7 @@ class BasePolicy
      * @param  \App\Models\User  $user
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function create(User $user)
+    public function create(User $user): bool
     {
         return $user->hasPermissionThroughRole("user-access");
     }
@@ -42,7 +42,7 @@ class BasePolicy
      * @param  \App\Models\User  $user
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function update(User $user, Model $model)
+    public function update(User $user, Model $model): bool
     {
         return $user->id == $model->user_id;
     }
@@ -53,7 +53,7 @@ class BasePolicy
      * @param  \App\Models\User  $user
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function delete(User $user, Model $model)
+    public function delete(User $user, Model $model): bool
     {
         return $user->id === $model->user_id;
     }

@@ -4,7 +4,6 @@ namespace App\Repositories;
 
 use App\Contracts\PostContract;
 use App\Models\Post;
-use Intervention\Image\Facades\Image;
 use Illuminate\Contracts\Pagination\Paginator;
 
 
@@ -17,10 +16,10 @@ class PostRepository extends BaseRepository implements PostContract
 
     public function allPosts(): Paginator
     {
-        return $this->model->with(["image","tags", "comments"])->paginate(15);
+        return $this->model->with(["image", "tags", "comments"])->paginate(15);
     }
 
-    public function saveImage(Post $post, Image $imagePath): void
+    public function saveImage(Post $post, string $imagePath): void
     {
         $post->image()->create(["path" => $imagePath]);
     }

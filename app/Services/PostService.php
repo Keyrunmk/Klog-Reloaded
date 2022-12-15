@@ -6,17 +6,18 @@ use App\Contracts\LocationContract;
 use App\Contracts\PostContract;
 use App\Exceptions\ForbiddenException;
 use App\facades\UserLocation;
-use App\Models\Location;
 use App\Models\Post;
 use App\Repositories\LocationRepository;
 use App\Repositories\PostRepository;
+use App\Traits\ImageTrait;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Intervention\Image\Facades\Image;
 
 class PostService
 {
+    use ImageTrait;
+
     protected PostRepository $postRepository;
     protected LocationRepository $locationRepository;
 
@@ -47,15 +48,14 @@ class PostService
         ]);
 
         if ($attributes["image"] ?? false) {
+            unset($attributes["image"]);
             $imagePath = $this->getImagePath();
         }
 
         $post = $this->postRepository->create($attributes);
-
         if ($imagePath ?? false) {
             $this->postRepository->saveImage($post, $imagePath);
         }
-
         $this->postRepository->savePostLocation($post, $location);
         // Cache::forget("posts");
 
@@ -66,10 +66,15 @@ class PostService
     {
         $post = $this->postRepository->findOneOrFail($post_id);
         $this->checkForPermission($post);
+        if ($attributes["image"] ?? false) {
+            unset($attributes["image"]);
+            $imagePath = $this->getImagePath();
+        }
+
         $this->postRepository->update($attributes, $post_id);
 
-        if ($attributes["image"] ?? false) {
-            $post = $this->updateImage($post);
+        if ($imagePath ?? false) {
+            $post = $this->postRepository->updateImage($post, $imagePath);
         }
         // Cache::forget("posts");
 
@@ -122,27 +127,9 @@ class PostService
         $this->postRepository->saveTag($post, $attributes);
     }
 
-    public function updateImage(Post $post): Post
-    {
-        $imagePath = $this->getImagePath();
-        $this->postRepository->updateImage($post, $imagePath);
-        // Cache::forget("posts");
-
-        return $post;
-    }
-
-    public function getImagePath(): string
-    {
-        $imagePath = request("image")->store("uploads", "public");
-        $image = Image::make(public_path("storage/$imagePath"))->fit(2000, 2000);
-        $image->save();
-
-        return $imagePath;
-    }
-
     public function checkForPermission(Post $post): void
     {
-        if (auth()->user()->cannot("update", $post)) {
+        if (Gate::denies("update-post", $post)) {
             throw new ForbiddenException("You do not own this post");
         }
     }

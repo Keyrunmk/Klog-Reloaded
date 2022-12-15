@@ -10,6 +10,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+
 class AuthenticationService
 {
     public AdminRepository $adminRepository;
@@ -22,17 +23,16 @@ class AuthenticationService
     public function register(array $attributes): array
     {
         $attributes["password"] = Hash::make($attributes["password"]);
-
         $role = Cache::remember("role-admin", 86400, function () {
             return Role::where("slug", "admin")->first();
         });
-
         $attributes = array_merge($attributes, [
             "role_id" => $role->id,
         ]);
 
         $admin = $this->adminRepository->create($attributes);
         $token = Auth::guard("admin-api")->login($admin);
+
         if (empty($token)) {
             throw new Exception("Failed to login", Response::HTTP_UNAUTHORIZED);
         }
@@ -43,7 +43,7 @@ class AuthenticationService
         ];
     }
 
-    public function login(array $attributes): string
+    public function login(array $attributes): array
     {
         $token =  Auth::guard("admin-api")->attempt($attributes);
 
@@ -51,7 +51,7 @@ class AuthenticationService
             throw new Exception("Invalid Credentials", Response::HTTP_UNAUTHORIZED);
         }
 
-        return $token;
+        return ["token" => $token];
     }
 
     public function logout(): void

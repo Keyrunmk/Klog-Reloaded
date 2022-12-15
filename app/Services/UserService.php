@@ -68,14 +68,14 @@ class UserService
         $this->userRepository->delete($user_id);
     }
 
-    public function login(array $attributes): string
+    public function login(array $attributes): array
     {
         $token = Auth::attempt($attributes);
         if (!$token) {
             throw new Exception("Invalid Credentials", Response::HTTP_BAD_REQUEST);
         };
 
-        return $token;
+        return ["token" => $token];
     }
 
     public function logout(): void

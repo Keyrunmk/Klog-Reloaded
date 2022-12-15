@@ -40,6 +40,10 @@ class AuthServiceProvider extends ServiceProvider
             return $user->can("delete", $post) || $user->can("delete", $comment);
         });
 
+        Gate::define("update-post", function (User $user, Post $post) {
+            return $user->can("update", $post);
+        });
+
         Passport::tokensExpireIn(now()->addDay());
         Passport::refreshTokensExpireIn(now()->addDays(2));
         Passport::personalAccessTokensExpireIn(now()->addDays(3));

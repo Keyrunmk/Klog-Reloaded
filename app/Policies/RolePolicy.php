@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Services\Admin\RoleService;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class RolePolicy
@@ -24,6 +23,6 @@ class RolePolicy
 
     public function create(User $user): bool
     {
-        return $user->hasRole(["page-admin","page-manager"]);
+        return $user->hasRole(["page-admin", "page-manager"]);
     }
 }

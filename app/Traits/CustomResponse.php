@@ -8,36 +8,34 @@ use Illuminate\Http\Response;
 
 trait CustomResponse
 {
-    public function errorResponse(string $message, int $responseCode = Response::HTTP_INTERNAL_SERVER_ERROR): JsonResponse
+    public function errorResponse(string $message, int $code = Response::HTTP_INTERNAL_SERVER_ERROR): JsonResponse
     {
-        return response()->json([
-            "status" => "Failed",
-            "message" => $message,
-        ], $responseCode);
+        return $this->returnResponse($message, $code);
     }
 
     public function handleException(Exception $exception): JsonResponse
     {
-        $responseCode = $exception->getCode();
-        $responseCode = ($responseCode < 100 || $responseCode > 500) ? 500 : $responseCode;
-        return response()->json([
-            "message" => $exception->getMessage(),
-        ], $responseCode);
+        $code = $exception->getCode();
+        $code = ($code < Response::HTTP_OK || $code > Response::HTTP_INTERNAL_SERVER_ERROR) ? Response::HTTP_INTERNAL_SERVER_ERROR : $code;
+        return $this->returnResponse($exception->getMessage(), $code);
     }
 
-    public function successResponse(string $message, int $responseCode = Response::HTTP_OK, object $data = null): JsonResponse
+    public function successResponse(string|array $message, object $data = null, int $code = Response::HTTP_OK): JsonResponse
+    {
+        return $this->returnResponse($message, $code, $data);
+    }
+
+    public function returnResponse(string|array $message, int $code, object $data = null): JsonResponse
     {
         if ($data) {
             return response()->json([
-                "status" => "success",
-                "message" => $message,
+                "response" => $message,
                 "data" => $data,
-            ], $responseCode);
+            ], $code);
         }
 
         return response()->json([
-            "status" => "success",
-            "message" => $message,
-        ], $responseCode);
+            "response" => $message,
+        ], $code);
     }
 }

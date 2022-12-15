@@ -10,7 +10,6 @@ use App\Services\ProfileService;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ProfileController extends BaseController
@@ -54,7 +53,7 @@ class ProfileController extends BaseController
         } catch (NotFoundException $exception) {
             return $this->errorResponse("Couldn't find the profile to follow", (int) $exception->getCode());
         } catch (Exception $exception) {
-            return $this->errorResponse("Something went wrong", (int)$exception->getCode());
+            return $this->handleException($exception);
         }
     }
 

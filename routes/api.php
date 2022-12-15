@@ -75,8 +75,8 @@ Route::middleware("auth:api", "role:user", "verify:active")->group(function () {
     });
 });
 
-Route::get("/posts/{location}", function($location){
-    $posts = Post::whereHas('location' , function($query) use($location){
+Route::get("/posts/{location}", function ($location) {
+    $posts = Post::whereHas('location', function ($query) use ($location) {
         $query->where('id', $location);
     })->get();
     dd($posts);
