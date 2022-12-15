@@ -5,10 +5,7 @@ namespace App\Services\Admin;
 use App\Contracts\AdminContract;
 use App\Models\Role;
 use App\Repositories\AdminRepository;
-use App\Validations\AdminLogin;
-use App\Validations\AdminRegister;
 use Exception;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -16,19 +13,14 @@ use Illuminate\Support\Facades\Hash;
 class AuthenticationService
 {
     public AdminRepository $adminRepository;
-    public AdminRegister $validateRegister;
-    public AdminLogin $validateLogin;
 
-    public function __construct(AdminContract $adminRepository, AdminRegister $validateRegister, AdminLogin $validateLogin)
+    public function __construct(AdminContract $adminRepository)
     {
         $this->adminRepository = $adminRepository;
-        $this->validateRegister = $validateRegister;
-        $this->validateLogin = $validateLogin;
     }
 
-    public function register(Request $request): array
+    public function register(array $attributes): array
     {
-        $attributes = $this->validateRegister->validate($request);
         $attributes["password"] = Hash::make($attributes["password"]);
 
         $role = Cache::remember("role-admin", 86400, function () {
@@ -51,10 +43,8 @@ class AuthenticationService
         ];
     }
 
-    public function login(Request $request): string
+    public function login(array $attributes): string
     {
-        $attributes = $this->validateLogin->validate($request);
-
         $token =  Auth::guard("admin-api")->attempt($attributes);
 
         if (empty($token)) {

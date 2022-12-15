@@ -2,14 +2,14 @@
 
 namespace App\Services;
 
+use App\Contracts\LocationContract;
 use App\Contracts\UserContract;
+use App\facades\UserLocation;
 use App\Models\Role;
 use App\Models\User;
+use App\Repositories\LocationRepository;
 use App\Repositories\UserRepository;
-use App\Validations\ValidateLoginRequest;
-use App\Validations\ValidateRegisterRequest;
 use Exception;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -18,26 +18,26 @@ use Illuminate\Support\Facades\Hash;
 class UserService
 {
     public UserRepository $userRepository;
-    public ValidateRegisterRequest $validateRegister;
-    public ValidateLoginRequest $validateLogin;
+    public LocationRepository $locationRepository;
 
-    public function __construct(UserContract $userRepository, ValidateRegisterRequest $validateRegister, ValidateLoginRequest $validateLogin)
+    public function __construct(UserContract $userRepository, LocationContract $locationRepository)
     {
         $this->userRepository = $userRepository;
-        $this->validateRegister = $validateRegister;
-        $this->validateLogin = $validateLogin;
+        $this->locationRepository = $locationRepository;
     }
 
-    public function register(Request $request): User
+    public function register(array $attributes): User
     {
-        $attributes = $this->validateRegister->validate($request);
         $attributes["password"] = Hash::make($attributes["password"]);
+        $location = UserLocation::getCountryName();
+        $location_id = $this->locationRepository->getLocationId($location);
         $role_id = Cache::remember("role_user", 86400, function () {
             return Role::where("slug", "user")->value("id");
         });
 
         $attributes = array_merge($attributes, [
             "role_id" => $role_id,
+            "location_id" => $location_id,
         ]);
 
         $user = $this->userRepository->create($attributes);
@@ -46,13 +46,9 @@ class UserService
         return $user;
     }
 
-    public function verify(int $user_id, Request $request): array
+    public function verify(int $user_id, array $attributes): array
     {
-        $request = $request->validate([
-            "token" => ["required", "string"],
-        ]);
-
-        $userVerify = $this->userRepository->getUserForActivation($request["token"], $user_id);
+        $userVerify = $this->userRepository->getUserForActivation($attributes["token"], $user_id);
         $user = $userVerify->user;
         $message = "Your email is already verified.";
         if (!$user->email_verified_at) {
@@ -72,10 +68,8 @@ class UserService
         $this->userRepository->delete($user_id);
     }
 
-    public function login(Request $request): string
+    public function login(array $attributes): string
     {
-        $attributes = $this->validateLogin->validate($request);
-
         $token = Auth::attempt($attributes);
         if (!$token) {
             throw new Exception("Invalid Credentials", Response::HTTP_BAD_REQUEST);

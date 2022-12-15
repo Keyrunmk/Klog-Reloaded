@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\BaseController;
+use App\Http\Requests\AdminLoginRequest;
+use App\Http\Requests\AdminRegisterRequest;
 use App\Http\Resources\AdminResource;
 use App\Services\Admin\AuthenticationService;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class AdminController extends BaseController
 {
@@ -20,10 +21,10 @@ class AdminController extends BaseController
         $this->middleware("adminRole:create")->only(["register", "destroy"]);
     }
 
-    public function register(Request $request): JsonResponse
+    public function register(AdminRegisterRequest $request): JsonResponse
     {
         try {
-            $data = $this->authenticationService->register($request);
+            $data = $this->authenticationService->register($request->all());
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
@@ -31,10 +32,10 @@ class AdminController extends BaseController
         return $this->successResponse(message: "Admin created", data: new AdminResource($data["admin"], $data["token"]));
     }
 
-    public function login(Request $request): JsonResponse
+    public function login(AdminLoginRequest $request): JsonResponse
     {
         try {
-            $token = $this->authenticationService->login($request);
+            $token = $this->authenticationService->login($request->all());
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }

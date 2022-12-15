@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Events\UserRegisteredEvent;
 use App\Events\VerifyUserEvent;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\TokenRequest;
 use App\Services\UserService;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -22,55 +25,51 @@ class AuthenticationController extends BaseController
         $this->middleware("auth:api")->only(["logout", "refreshToken"]);
     }
 
-    public function register(Request $request): mixed
+    public function register(RegisterRequest $request): mixed
     {
         try {
-            $user = $this->userService->register($request);
+            $user = $this->userService->register($request->all());
+            return UserRegisteredEvent::dispatch($user);
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
-
-        return UserRegisteredEvent::dispatch($user);
     }
 
-    public function verify(int $user_id, Request $request): JsonResponse
+    public function verify(int $user_id, TokenRequest $request): JsonResponse
     {
         try {
-            $data = $this->userService->verify($user_id, $request);
+            $data = $this->userService->verify($user_id, $request->all());
             VerifyUserEvent::dispatch($data["user"]);
+            return $this->successResponse($data["message"]);
         } catch (ModelNotFoundException $exception) {
             return $this->errorResponse("Wrong token");
         } catch (Exception $exception) {
             $this->userService->retry($user_id);
             return $this->handleException($exception);
         }
-
-        return $this->successResponse($data["message"]);
     }
 
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
         try {
-            $token = $this->userService->login($request);
+            $token = $this->userService->login($request->all());
+            // Cache::flush();
+            return $this->successResponse($token);
         } catch (ModelNotFoundException $exception) {
             return $this->errorResponse("No user with given email address", (int) $exception->getCode());
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
-
-        // Cache::flush();
-        return $this->successResponse($token);
     }
 
     public function logout(): JsonResponse
     {
         try {
             $this->userService->logout();
+            return $this->successResponse("Logged out successfully");
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
-
-        return $this->successResponse("Logged out successfully");
     }
 
     public function refreshToken(): JsonResponse
