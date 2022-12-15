@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string("password")->min(8);
             $table->enum("status", ["active", "inactive", "pending"])->default("inactive");
             $table->integer("role_id");
+            $table->foreignId("location_id")->constrained()->nulllable();
             $table->rememberToken();
             $table->timestamps();
 

@@ -17,7 +17,7 @@ class HomeService
 
     public function getPosts(): Collection
     {
-        if (auth()->user ?? false) {
+        if (auth()->user() ?? false) {
             $location = auth()->user()->location->first();
             $authPosts = $location->posts()->get();
 

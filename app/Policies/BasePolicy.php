@@ -26,28 +26,6 @@ class BasePolicy
     }
 
     /**
-     * Determine whether the user can view any models.
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Auth\Access\Response|bool
-     */
-    public function viewAny(User $user, Model $model)
-    {
-        return $user->id === $model->user->id;
-    }
-
-    /**
-     * Determine whether the user can view the model.
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Auth\Access\Response|bool
-     */
-    public function view(User $user, Model $model)
-    {
-        return $user->id === $model->user_id;
-    }
-
-    /**
      * Determine whether the user can create models.
      *
      * @param  \App\Models\User  $user
@@ -55,10 +33,7 @@ class BasePolicy
      */
     public function create(User $user)
     {
-        if (auth()->user()->id === $user->id) {
-            return true;
-        }
-        return false;
+        return $user->hasPermissionThroughRole("user-access");
     }
 
     /**

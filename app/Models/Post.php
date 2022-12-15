@@ -61,14 +61,9 @@ class Post extends Model
         return $this->morphToMany(Tag::class, "taggable");
     }
 
-    public function postLocation(): BelongsTo
+    public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
-    }
-
-    public function location(): MorphMany
-    {
-        return $this->morphMany(Location::class, "locationable");
     }
 
     public function postReports(): HasMany

@@ -4,11 +4,14 @@ namespace App\Providers;
 
 // use Illuminate\Support\Facades\Gate;
 
+use App\Models\Comment;
 use App\Models\Post;
 use App\Models\Profile;
+use App\Models\User;
 use App\Policies\PostPolicy;
 use App\Policies\ProfilePolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Gate;
 use Laravel\Passport\Passport;
 
 class AuthServiceProvider extends ServiceProvider
@@ -32,6 +35,10 @@ class AuthServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->registerPolicies();
+
+        Gate::define("delete-post-comment", function (User $user, Post $post, Comment $comment) {
+            return $user->can("delete", $post) || $user->can("delete", $comment);
+        });
 
         Passport::tokensExpireIn(now()->addDay());
         Passport::refreshTokensExpireIn(now()->addDays(2));

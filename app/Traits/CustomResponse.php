@@ -18,9 +18,11 @@ trait CustomResponse
 
     public function handleException(Exception $exception): JsonResponse
     {
+        $responseCode = $exception->getCode();
+        $responseCode = ($responseCode < 100 || $responseCode > 500) ? 500 : $responseCode;
         return response()->json([
             "message" => $exception->getMessage(),
-        ], (int) $exception->getCode());
+        ], $responseCode);
     }
 
     public function successResponse(string $message, int $responseCode = Response::HTTP_OK, object $data = null): JsonResponse
