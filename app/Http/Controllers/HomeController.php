@@ -6,7 +6,6 @@ use App\Http\Resources\PostsCollection;
 use App\Services\HomeService;
 use Exception;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response;
 
 class HomeController extends BaseController
 {
@@ -21,11 +20,10 @@ class HomeController extends BaseController
     {
         try {
             $posts = $this->homeService->getPosts();
+            return $this->successResponse(message: "Home view", data: new PostsCollection($posts));
         } catch (Exception $exception) {
-            return $this->errorResponse($exception->getMessage(), (int) $exception->getCode());
+            return $this->handleException($exception);
         }
-
-        return $this->successResponse(message: "Home view", data: new PostsCollection($posts));
     }
 
     // public function store(User $user)

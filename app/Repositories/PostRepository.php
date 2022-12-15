@@ -4,7 +4,8 @@ namespace App\Repositories;
 
 use App\Contracts\PostContract;
 use App\Models\Post;
-use Intervention\Image\Facades\Image;
+use Illuminate\Contracts\Pagination\Paginator;
+
 
 class PostRepository extends BaseRepository implements PostContract
 {
@@ -13,7 +14,12 @@ class PostRepository extends BaseRepository implements PostContract
         parent::__construct($model);
     }
 
-    public function saveImage(Post $post, Image $imagePath): void
+    public function allPosts(): Paginator
+    {
+        return $this->model->with(["image", "tags", "comments"])->paginate(15);
+    }
+
+    public function saveImage(Post $post, string $imagePath): void
     {
         $post->image()->create(["path" => $imagePath]);
     }
@@ -41,7 +47,7 @@ class PostRepository extends BaseRepository implements PostContract
     public function findWithComment(int $post_id, int $comment_id): Post
     {
         return $this->findOneOrFail($post_id)->with(["comments" => function ($query) use ($comment_id) {
-            $query->where("id", $comment_id);
+            $query->where("id", $comment_id)->first();
         }])->first();
     }
 

@@ -18,8 +18,8 @@ class Location extends Model
         return $this->hasMany(Post::class);
     }
 
-    public function locationable(): MorphTo
+    public function users(): HasMany
     {
-        return $this->morphTo();
+        return $this->hasMany(User::class);
     }
 }
