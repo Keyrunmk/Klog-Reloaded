@@ -14,6 +14,11 @@ class CategoryService
         $this->categoryRepository = $categoryRepository;
     }
 
+    public function index(): mixed
+    {
+        return $this->categoryRepository->all();
+    }
+
     public function show(int $category_id): mixed
     {
         return $this->categoryRepository->findOneOrFail($category_id);

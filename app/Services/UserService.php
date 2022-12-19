@@ -4,35 +4,31 @@ namespace App\Services;
 
 use App\Contracts\LocationContract;
 use App\Contracts\UserContract;
-use App\facades\UserLocation;
-use App\Models\Role;
 use App\Models\User;
-use App\Repositories\LocationRepository;
 use App\Repositories\UserRepository;
 use Exception;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
-class UserService
+class UserService extends BaseService
 {
     public UserRepository $userRepository;
-    public LocationRepository $locationRepository;
 
-    public function __construct(UserContract $userRepository, LocationContract $locationRepository)
+    public function __construct(UserContract $userRepository)
     {
         $this->userRepository = $userRepository;
-        $this->locationRepository = $locationRepository;
     }
 
     public function register(array $attributes): User
     {
+        $start = microtime(true);
         $attributes["password"] = Hash::make($attributes["password"]);
-        $location = UserLocation::getCountryName();
-        $location_id = $this->locationRepository->getLocationId($location);
+        $location_id = $this->getLocation()->id;
         $role_id = Cache::remember("role_user", 86400, function () {
-            return Role::where("slug", "user")->value("id");
+            return $this->getRoleId("user");
         });
 
         $attributes = array_merge($attributes, [
@@ -41,8 +37,9 @@ class UserService
         ]);
 
         $user = $this->userRepository->create($attributes);
-        $this->userRepository->setLocation($user);
-
+        $end = microtime(true);
+        $time = $end-$start;
+        Log::info("registerTime", ["timeRegister" => $time]);
         return $user;
     }
 
@@ -65,17 +62,20 @@ class UserService
 
     public function retry(int $user_id): void
     {
-        $this->userRepository->delete($user_id);
+        $this->userRepository->deleteInactiveUser($user_id);
     }
 
     public function login(array $attributes): array
     {
         $token = Auth::attempt($attributes);
-        if (!$token) {
+        if (empty($token)) {
             throw new Exception("Invalid Credentials", Response::HTTP_BAD_REQUEST);
         };
 
-        return ["token" => $token];
+        return [
+            "token" => $token,
+            "expires_in" => auth()->guard("admin-api")->factory()->getTTL() . " seconds",
+        ];
     }
 
     public function logout(): void
@@ -83,8 +83,10 @@ class UserService
         Auth::guard("api")->logout();
     }
 
-    public function refreshToken(): string
+    public function refreshToken(): array
     {
-        return Auth::refresh();
+        return [
+            "token" => Auth::refresh(),
+        ];
     }
 }

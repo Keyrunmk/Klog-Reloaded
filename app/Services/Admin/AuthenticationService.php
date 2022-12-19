@@ -3,6 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Contracts\AdminContract;
+use App\Models\Admin;
 use App\Models\Role;
 use App\Repositories\AdminRepository;
 use Exception;
@@ -20,7 +21,7 @@ class AuthenticationService
         $this->adminRepository = $adminRepository;
     }
 
-    public function register(array $attributes): array
+    public function register(array $attributes): Admin
     {
         $attributes["password"] = Hash::make($attributes["password"]);
         $role = Cache::remember("role-admin", 86400, function () {
@@ -31,16 +32,8 @@ class AuthenticationService
         ]);
 
         $admin = $this->adminRepository->create($attributes);
-        $token = Auth::guard("admin-api")->login($admin);
 
-        if (empty($token)) {
-            throw new Exception("Failed to login", Response::HTTP_UNAUTHORIZED);
-        }
-
-        return [
-            "admin" => $admin,
-            "token" => $token,
-        ];
+        return $admin;
     }
 
     public function login(array $attributes): array
@@ -51,7 +44,10 @@ class AuthenticationService
             throw new Exception("Invalid Credentials", Response::HTTP_UNAUTHORIZED);
         }
 
-        return ["token" => $token];
+        return [
+            "token" => $token,
+            "expires_in" => auth()->guard("admin-api")->factory()->getTTL() . " seconds",
+        ];
     }
 
     public function logout(): void

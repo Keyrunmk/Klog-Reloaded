@@ -24,11 +24,6 @@ class PostRepository extends BaseRepository implements PostContract
         $post->image()->create(["path" => $imagePath]);
     }
 
-    public function savePostLocation(Post $post, string $location): void
-    {
-        $post->location()->create(["country_name" => $location]);
-    }
-
     public function updateImage(Post $post, string $imagePath): void
     {
         $post->image()->update(["path" => $imagePath]);

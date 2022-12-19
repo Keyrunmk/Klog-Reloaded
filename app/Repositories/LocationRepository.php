@@ -12,12 +12,12 @@ class LocationRepository extends BaseRepository implements LocationContract
         parent::__construct($model);
     }
 
-    public function getLocationId(string $countryName): int
+    public function getLocation(string $countryName): Location
     {
         $location = $this->findBy(["country_name" => $countryName]);
         if (!$location) {
             $location = $this->create(["country_name" => $countryName]);
         }
-        return $location->id;
+        return $location;
     }
 }

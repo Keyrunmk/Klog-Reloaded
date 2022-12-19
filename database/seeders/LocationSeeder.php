@@ -16,7 +16,7 @@ class LocationSeeder extends Seeder
     public function run()
     {
         $world = new Location();
-        $world->country_name = "world";
+        $world->country_name = "World";
         $world->save();
 
         $nepal = new Location();

@@ -2,7 +2,9 @@
 
 namespace App\Contracts;
 
+use App\Models\Location;
+
 interface LocationContract
 {
-    public function getLocationId(string $countryName): int;
+    public function getLocation(string $countryName): Location;
 }

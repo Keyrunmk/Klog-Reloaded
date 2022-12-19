@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\PostsCollection;
+use App\Http\Resources\PostResource;
 use App\Services\HomeService;
 use Exception;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 class HomeController extends BaseController
 {
@@ -20,24 +21,10 @@ class HomeController extends BaseController
     {
         try {
             $posts = $this->homeService->getPosts();
-            return $this->successResponse(message: "Home view", data: new PostsCollection($posts));
         } catch (Exception $exception) {
-            return $this->handleException($exception);
+            return $this->errorResponse($exception->getMessage(), (int) $exception->getCode());
         }
+
+        return $this->successResponse(message: "Home view", data: PostResource::collection($posts));
     }
-
-    // public function store(User $user)
-    // {
-    //     $attributes = request()->validate([
-    //         "name" => ["required", "string"],
-    //     ]);
-
-    //     $tag = $user->tags()->create($attributes);
-
-    //     return response()->json([
-    //         "status" => "success",
-    //         "tag_id" => $tag->id,
-    //         "tag" => $tag->name,
-    //     ]);
-    // }
 }

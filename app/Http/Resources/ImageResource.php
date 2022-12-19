@@ -2,9 +2,9 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Admin;
+use Illuminate\Http\Resources\Json\JsonResource;
 
-class AdminResource extends BaseResource
+class ImageResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -15,9 +15,7 @@ class AdminResource extends BaseResource
     public function toArray($request)
     {
         return [
-            "id" => $this->id,
-            "name" => $this->first_name . " " . $this->last_name,
-            "email" => $this->email,
+            "path" => $this->path,
         ];
     }
 }

@@ -2,35 +2,30 @@
 
 namespace App\Services;
 
-use App\Contracts\LocationContract;
 use App\Contracts\PostContract;
 use App\Exceptions\ForbiddenException;
-use App\facades\UserLocation;
 use App\Models\Post;
-use App\Repositories\LocationRepository;
 use App\Repositories\PostRepository;
 use App\Traits\ImageTrait;
-use Illuminate\Support\Collection;
+use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 
-class PostService
+class PostService extends BaseService
 {
     use ImageTrait;
 
     protected PostRepository $postRepository;
-    protected LocationRepository $locationRepository;
 
-    public function __construct(PostContract $postRepository, LocationContract $locationRepository)
+    public function __construct(PostContract $postRepository)
     {
         $this->postRepository = $postRepository;
-        $this->locationRepository = $locationRepository;
     }
 
-    public function index(): Collection
+    public function index(): Paginator
     {
-        $posts =  $this->postRepository->allPosts();
-        return collect($posts->all());
+        return $this->postRepository->allPosts();
     }
 
     public function find(int $post_id): Post
@@ -40,11 +35,10 @@ class PostService
 
     public function store(array $attributes): Post
     {
-        $location = UserLocation::getCountryName();
-        $location_id = $this->locationRepository->getLocationId($location);
+        $location = $this->getLocation();
         $attributes = array_merge($attributes, [
             "user_id" => Auth::user()->id,
-            "location_id" => $location_id,
+            "location_id" => $location->id,
         ]);
 
         if ($attributes["image"] ?? false) {
@@ -56,7 +50,6 @@ class PostService
         if ($imagePath ?? false) {
             $this->postRepository->saveImage($post, $imagePath);
         }
-        $this->postRepository->savePostLocation($post, $location);
         // Cache::forget("posts");
 
         return $post;
@@ -74,17 +67,20 @@ class PostService
         $this->postRepository->update($attributes, $post_id);
 
         if ($imagePath ?? false) {
-            $post = $this->postRepository->updateImage($post, $imagePath);
+            $this->deleteImage($post);
+            $this->postRepository->saveImage($post, $imagePath);
         }
         // Cache::forget("posts");
 
-        return $post;
+        return $post->fresh();
     }
 
     public function delete(int $post_id): bool
     {
         $post = $this->postRepository->findOneOrFail($post_id);
         $this->checkForPermission($post);
+
+        $this->deleteImage($post);
 
         return $this->postRepository->delete($post_id);
     }
@@ -125,6 +121,17 @@ class PostService
     {
         $post = $this->postRepository->findOneOrFail($post_id);
         $this->postRepository->saveTag($post, $attributes);
+    }
+
+    public function deleteImage(Post $post): void
+    {
+        if ($post->image) {
+            if (Storage::disk("local")->exists("public/" . $post->image->path)) {
+                if (Storage::disk("local")->delete("public/" . $post->image->path)) {
+                    $post->image()->delete();
+                };
+            }
+        }
     }
 
     public function checkForPermission(Post $post): void
