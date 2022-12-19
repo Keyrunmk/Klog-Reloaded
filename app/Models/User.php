@@ -6,10 +6,11 @@ namespace App\Models;
 
 use App\Traits\HasRolesAndPermissions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -31,6 +32,7 @@ class User extends Authenticatable implements JWTSubject
         "username",
         "email",
         "role_id",
+        "location_id",
         "password",
     ];
 
@@ -93,19 +95,19 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Post::class)->orderBy("created_at", "DESC");
     }
 
-    // public function image(): MorphOne
-    // {
-    //     return $this->morphOne(Image::class, "imageable");
-    // }
+    public function image(): MorphOne
+    {
+        return $this->morphOne(Image::class, "imageable");
+    }
 
     public function tags(): MorphToMany
     {
         return $this->morphToMany(Tag::class, "taggable");
     }
 
-    public function location(): MorphMany
+    public function location(): BelongsTo
     {
-        return $this->morphMany(Location::class, "locationable");
+        return $this->belongsTo(Location::class);
     }
 
     public function following(): BelongsToMany

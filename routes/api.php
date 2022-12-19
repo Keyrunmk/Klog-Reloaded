@@ -6,6 +6,7 @@ use App\Http\Controllers\Oauth\CallbackController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -73,8 +74,8 @@ Route::middleware("auth:api", "role:user", "verify:active")->group(function () {
     });
 });
 
-// Route::fallback(function () {
-//     return response()->json([
-//         'message' => 'Page Not Found. If error persists, contact info@klog.com'
-//     ], Response::HTTP_NOT_FOUND);
-// });
+Route::fallback(function () {
+    return response()->json([
+        'message' => 'Page Not Found. If error persists, contact info@klog.com'
+    ], Response::HTTP_NOT_FOUND);
+});

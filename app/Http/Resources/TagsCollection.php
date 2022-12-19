@@ -4,7 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\ResourceCollection;
 
-class PostsCollection extends ResourceCollection
+class TagsCollection extends ResourceCollection
 {
     /**
      * Transform the resource collection into an array.
@@ -14,14 +14,11 @@ class PostsCollection extends ResourceCollection
      */
     public function toArray($request)
     {
-        return $this->map(function ($post) {
+        return $this->map(function($tag){
             return [
-                "id" => $post->id,
-                "title" => $post->title,
-                "body" => $post->body,
-                "comments" => new CommentsCollection($post->comments),
-                "tags" => new TagsCollection($post->tags),
+                "id" => $tag->id,
+                "name" => $tag->name,
             ];
-        })->toArray();
+        });
     }
 }

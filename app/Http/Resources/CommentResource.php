@@ -2,9 +2,9 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Admin;
+use Illuminate\Http\Resources\Json\JsonResource;
 
-class AdminResource extends BaseResource
+class CommentResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,8 +16,8 @@ class AdminResource extends BaseResource
     {
         return [
             "id" => $this->id,
-            "name" => $this->first_name . " " . $this->last_name,
-            "email" => $this->email,
+            "body" => $this->body,
+            "user_id" => $this->user_id,
         ];
     }
 }

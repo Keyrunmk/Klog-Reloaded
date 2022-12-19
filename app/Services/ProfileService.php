@@ -3,23 +3,18 @@
 namespace App\Services;
 
 use App\Contracts\ProfileContract;
-use App\Exceptions\NotFoundException;
+use App\Http\Requests\ProfileRequest;
 use App\Models\Profile;
 use App\Repositories\ProfileRepository;
-use App\Validations\ValidateProfileRequest;
-use Exception;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Http\Request;
 use Intervention\Image\Facades\Image;
 
 class ProfileService
 {
-    protected ValidateProfileRequest $profileValidate;
+    protected ProfileRequest $profileValidate;
     protected ProfileRepository $profileRepository;
 
-    public function __construct(ValidateProfileRequest $profileValidate, ProfileContract $profileRepository)
+    public function __construct(ProfileContract $profileRepository)
     {
-        $this->profileValidate = $profileValidate;
         $this->profileRepository = $profileRepository;
     }
 
@@ -28,13 +23,11 @@ class ProfileService
         return $this->profileRepository->findOneOrFail($profile_id);
     }
 
-    public function update(Profile $profile, Request $request): Profile
+    public function update(Profile $profile, array $request): Profile
     {
-        $attributes = $this->profileValidate->validate($request);
+        $this->profileRepository->updateProfile($profile, $request);
 
-        $this->profileRepository->updateProfile($profile, $attributes);
-
-        if ($request->image) {
+        if (request("image")) {
             $imagePath = request("image")->store("uploads", "public");
             $image = Image::make(public_path("storage/$imagePath"))->fit(2000, 2000);
             $image->save();
@@ -51,10 +44,7 @@ class ProfileService
 
     public function followProfile(int $profile_id): string
     {
-        $profile = $this->profileRepository->findOneOrFail($profile_id);
-        $user = $profile->user;
-        //todo - test for profile
-        $response = auth()->user()->following()->toggle($user);
+        $response = auth()->user()->following()->toggle($profile_id);
 
         if (!empty($response["attached"])) {
             return "Following profile id " . $response["attached"][0];

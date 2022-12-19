@@ -2,6 +2,7 @@
 
 namespace App\facades;
 
+use App\Models\Location;
 use App\Services\LocationService;
 
 class UserLocation
@@ -11,7 +12,7 @@ class UserLocation
         return app()[$class];
     }
 
-    public static function __callStatic($method, $arguments): string
+    public static function __callStatic($method, $arguments): Location
     {
         return self::resolveFacade(LocationService::class)->$method(...$arguments);
     }

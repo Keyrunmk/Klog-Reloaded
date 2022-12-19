@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Events\UserRegisteredEvent;
 use App\Events\VerifyUserEvent;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\TokenRequest;
 use App\Services\UserService;
 use Exception;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class AuthenticationController extends BaseController
 {
@@ -22,43 +23,49 @@ class AuthenticationController extends BaseController
         $this->middleware("auth:api")->only(["logout", "refreshToken"]);
     }
 
-    public function register(Request $request): mixed
+    public function register(RegisterRequest $request): mixed
     {
+        DB::beginTransaction();
         try {
-            $user = $this->userService->register($request);
+            $user = $this->userService->register($request->all());
         } catch (Exception $exception) {
+            DB::rollBack();
             return $this->handleException($exception);
         }
+        DB::commit();
 
         return UserRegisteredEvent::dispatch($user);
     }
 
-    public function verify(int $user_id, Request $request): JsonResponse
+    public function verify(int $user_id, TokenRequest $request): JsonResponse
     {
+        DB::beginTransaction();
         try {
-            $data = $this->userService->verify($user_id, $request);
+            $data = $this->userService->verify($user_id, $request->all());
             VerifyUserEvent::dispatch($data["user"]);
-        } catch (ModelNotFoundException $exception) {
-            return $this->errorResponse("Wrong token");
         } catch (Exception $exception) {
-            $this->userService->retry($user_id);
+            DB::rollBack();
+            try {
+                $this->userService->retry($user_id);
+            } catch (Exception $exception) {
+                return $this->handleException($exception);
+            }
             return $this->handleException($exception);
         }
+        DB::commit();
 
         return $this->successResponse($data["message"]);
     }
 
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
         try {
-            $token = $this->userService->login($request);
-        } catch (ModelNotFoundException $exception) {
-            return $this->errorResponse("No user with given email address", (int) $exception->getCode());
+            $token = $this->userService->login($request->all());
+            // Cache::flush();
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
 
-        // Cache::flush();
         return $this->successResponse($token);
     }
 
@@ -76,9 +83,11 @@ class AuthenticationController extends BaseController
     public function refreshToken(): JsonResponse
     {
         try {
-            return $this->successResponse($this->userService->refreshToken());
+            $token = $this->userService->refreshToken();
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
+
+        return $this->successResponse($token);
     }
 }

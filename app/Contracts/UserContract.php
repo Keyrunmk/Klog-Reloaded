@@ -8,8 +8,6 @@ use App\Models\UserVerification;
 
 interface UserContract
 {
-    public function setLocation(User $user): void;
-
     public function findWhere(string $email, UserStatusEnum $status): mixed;
 
     public function getUserForActivation(string $token, int $user_id): UserVerification;
