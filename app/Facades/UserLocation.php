@@ -1,6 +1,6 @@
 <?php
 
-namespace App\facades;
+namespace App\Facades;
 
 use App\Models\Location;
 use App\Services\LocationService;

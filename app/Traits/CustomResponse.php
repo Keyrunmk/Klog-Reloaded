@@ -17,7 +17,7 @@ trait CustomResponse
     public function handleException(Exception $exception): JsonResponse
     {
         $message = $exception->getMessage();
-        $code = $exception->getCode();
+        $code = (int) $exception->getCode();
         $code = ($code < Response::HTTP_OK || $code > Response::HTTP_INTERNAL_SERVER_ERROR) ? Response::HTTP_INTERNAL_SERVER_ERROR : $code;
 
         if ($exception instanceof ModelNotFoundException) {

@@ -14,7 +14,7 @@ class LocationRepository extends BaseRepository implements LocationContract
 
     public function getLocation(string $countryName): Location
     {
-        $location = $this->findBy(["country_name" => $countryName]);
+        $location = $this->findBy(["country_name" => $countryName]) ?? null;
         if (!$location) {
             $location = $this->create(["country_name" => $countryName]);
         }

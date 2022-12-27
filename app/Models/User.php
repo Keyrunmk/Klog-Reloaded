@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Passport\HasApiTokens;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
@@ -33,7 +34,12 @@ class User extends Authenticatable implements JWTSubject
         "email",
         "role_id",
         "location_id",
+        "status",
         "password",
+        "secret",
+        "hash",
+        "is2Fa",
+        "access_token"
     ];
 
     /**
@@ -118,5 +124,20 @@ class User extends Authenticatable implements JWTSubject
     public function UserVerification(): HasOne
     {
         return $this->hasOne(UserVerification::class);
+    }
+
+    /**
+     * Validate the password of the user for the Passport password grant.
+     *
+     * @param  string  $password
+     * @return bool
+     */
+    public function validateForPassportPasswordGrant($password): bool
+    {
+        if ($password) {
+            return Hash::check($password, $this->password);
+        }
+
+        return true;
     }
 }

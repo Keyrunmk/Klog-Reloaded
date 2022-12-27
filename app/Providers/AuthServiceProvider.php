@@ -4,6 +4,8 @@ namespace App\Providers;
 
 // use Illuminate\Support\Facades\Gate;
 
+use App\Grants\CustomGrant;
+use App\Grants\OtpVerify;
 use App\Models\Comment;
 use App\Models\Post;
 use App\Models\Profile;
@@ -12,7 +14,9 @@ use App\Policies\PostPolicy;
 use App\Policies\ProfilePolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Laravel\Passport\Bridge\UserRepository;
 use Laravel\Passport\Passport;
+use League\OAuth2\Server\AuthorizationServer;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -44,8 +48,22 @@ class AuthServiceProvider extends ServiceProvider
             return $user->can("update", $post);
         });
 
-        Passport::tokensExpireIn(now()->addDay());
-        Passport::refreshTokensExpireIn(now()->addDays(2));
-        Passport::personalAccessTokensExpireIn(now()->addDays(3));
+        Passport::tokensExpireIn(now()->addHour(6));
+        // Passport::refreshTokensExpireIn(now()->addDay());
+        // Passport::personalAccessTokensExpireIn(now()->addDays(2));
+
+        app(AuthorizationServer::class)->enableGrantType(
+            $this->makeOtpGrant(), Passport::tokensExpireIn()
+        );
+    }
+
+    protected function makeOtpGrant(): CustomGrant
+    {
+        $grant = new CustomGrant(
+            $this->app->make(UserRepository::class),
+            $this->app->make(OtpVerify::class),
+        );
+
+        return $grant;
     }
 }

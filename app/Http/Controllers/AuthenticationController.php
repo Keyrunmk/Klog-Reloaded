@@ -7,18 +7,22 @@ use App\Events\VerifyUserEvent;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\TokenRequest;
+use App\Services\Oauth\AuthService;
 use App\Services\UserService;
 use Exception;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AuthenticationController extends BaseController
 {
     protected UserService $userService;
+    protected AuthService $authService;
 
-    public function __construct(UserService $userService)
+    public function __construct(UserService $userService, AuthService $authService)
     {
         $this->userService = $userService;
+        $this->authService = $authService;
         $this->middleware("guest:api")->only(["login", "register", "verify"]);
         $this->middleware("auth:api")->only(["logout", "refreshToken"]);
     }
@@ -57,10 +61,21 @@ class AuthenticationController extends BaseController
         return $this->successResponse($data["message"]);
     }
 
+    public function verifyOtp(Request $request)
+    {
+        try {
+            $data = $this->authService->verifyOtp($request);
+        } catch(Exception $exception) {
+            return $this->handleException($exception);
+        }
+
+        return $data;
+    }
+
     public function login(LoginRequest $request): JsonResponse
     {
         try {
-            $token = $this->userService->login($request->all());
+            $token = $this->authService->login($request->all());
             // Cache::flush();
         } catch (Exception $exception) {
             return $this->handleException($exception);
@@ -72,7 +87,7 @@ class AuthenticationController extends BaseController
     public function logout(): JsonResponse
     {
         try {
-            $this->userService->logout();
+            $this->authService->logout();
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
@@ -80,14 +95,14 @@ class AuthenticationController extends BaseController
         return $this->successResponse("Logged out successfully");
     }
 
-    public function refreshToken(): JsonResponse
-    {
-        try {
-            $token = $this->userService->refreshToken();
-        } catch (Exception $exception) {
-            return $this->handleException($exception);
-        }
+    // public function refreshToken(): JsonResponse
+    // {
+    //     try {
+    //         $token = $this->userService->refreshToken();
+    //     } catch (Exception $exception) {
+    //         return $this->handleException($exception);
+    //     }
 
-        return $this->successResponse($token);
-    }
+    //     return $this->successResponse($token);
+    // }
 }

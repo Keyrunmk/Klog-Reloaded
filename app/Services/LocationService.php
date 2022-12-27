@@ -18,12 +18,11 @@ class LocationService
 
     public function getCountry(): Location
     {
-        try {
-            $user_ip = getenv('REMOTE_ADDR');
-            $geo = unserialize(file_get_contents("http://www.geoplugin.net/php.gp?ip=$user_ip"));
+        $user_ip = getenv('REMOTE_ADDR');
+        $country = "World";
+        if ($user_ip) {
+            $geo = unserialize(file_get_contents("http://www.geoplugin.net/php.gp?ip=$user_ip")) ?? "World";
             $country = $geo["geoplugin_countryName"];
-        } catch (Exception $exception) {
-            $country = "World";
         }
 
         return $this->locationRepository->getLocation($country);

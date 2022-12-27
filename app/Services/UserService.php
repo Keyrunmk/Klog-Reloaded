@@ -2,29 +2,28 @@
 
 namespace App\Services;
 
-use App\Contracts\LocationContract;
 use App\Contracts\UserContract;
 use App\Models\User;
 use App\Repositories\UserRepository;
-use Exception;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
+use App\Services\Oauth\AuthService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
 class UserService extends BaseService
 {
-    public UserRepository $userRepository;
+    protected UserRepository $userRepository;
+    protected AuthService $authService;
 
-    public function __construct(UserContract $userRepository)
+    public function __construct(UserContract $userRepository, AuthService $authService)
     {
         $this->userRepository = $userRepository;
+        $this->authService = $authService;
     }
 
     public function register(array $attributes): User
     {
-        $start = microtime(true);
+        // $start = microtime(true);
         $attributes["password"] = Hash::make($attributes["password"]);
         $location_id = $this->getLocation()->id;
         $role_id = Cache::remember("role_user", 86400, function () {
@@ -37,9 +36,9 @@ class UserService extends BaseService
         ]);
 
         $user = $this->userRepository->create($attributes);
-        $end = microtime(true);
-        $time = $end-$start;
-        Log::info("registerTime", ["timeRegister" => $time]);
+        // $end = microtime(true);
+        // $time = $end-$start;
+        // Log::info("registerTime", ["timeRegister" => $time]);
         return $user;
     }
 
@@ -65,28 +64,10 @@ class UserService extends BaseService
         $this->userRepository->deleteInactiveUser($user_id);
     }
 
-    public function login(array $attributes): array
-    {
-        $token = Auth::attempt($attributes);
-        if (empty($token)) {
-            throw new Exception("Invalid Credentials", Response::HTTP_BAD_REQUEST);
-        };
-
-        return [
-            "token" => $token,
-            "expires_in" => auth()->guard("admin-api")->factory()->getTTL() . " seconds",
-        ];
-    }
-
-    public function logout(): void
-    {
-        Auth::guard("api")->logout();
-    }
-
-    public function refreshToken(): array
-    {
-        return [
-            "token" => Auth::refresh(),
-        ];
-    }
+    // public function refreshToken(): array
+    // {
+    //     return [
+    //         "token" => Auth::refresh(),
+    //     ];
+    // }
 }

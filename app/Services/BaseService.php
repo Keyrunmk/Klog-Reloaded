@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\facades\UserLocation;
+use App\Facades\UserLocation;
 use App\Models\Location;
 use App\Models\Role;
 
