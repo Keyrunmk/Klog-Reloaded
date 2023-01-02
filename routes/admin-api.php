@@ -30,5 +30,5 @@ Route::middleware("auth:admin-api", "adminRoute:admin")->group(function () {
     Route::delete("{admin_id}", [AdminController::class, "destroy"]);
 
     //categories
-    Route::apiResource("category", CategoryController::class)->except(["index"]);
+    Route::apiResource("category", CategoryController::class);
 });

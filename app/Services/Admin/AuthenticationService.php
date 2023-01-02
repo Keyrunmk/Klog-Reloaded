@@ -3,65 +3,51 @@
 namespace App\Services\Admin;
 
 use App\Contracts\AdminContract;
+use App\Models\Admin;
 use App\Models\Role;
 use App\Repositories\AdminRepository;
-use App\Validations\AdminLogin;
-use App\Validations\AdminRegister;
 use Exception;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+
 class AuthenticationService
 {
     public AdminRepository $adminRepository;
-    public AdminRegister $validateRegister;
-    public AdminLogin $validateLogin;
 
-    public function __construct(AdminContract $adminRepository, AdminRegister $validateRegister, AdminLogin $validateLogin)
+    public function __construct(AdminContract $adminRepository)
     {
         $this->adminRepository = $adminRepository;
-        $this->validateRegister = $validateRegister;
-        $this->validateLogin = $validateLogin;
     }
 
-    public function register(Request $request): array
+    public function register(array $attributes): Admin
     {
-        $attributes = $this->validateRegister->validate($request);
         $attributes["password"] = Hash::make($attributes["password"]);
-
         $role = Cache::remember("role-admin", 86400, function () {
             return Role::where("slug", "admin")->first();
         });
-
         $attributes = array_merge($attributes, [
             "role_id" => $role->id,
         ]);
 
         $admin = $this->adminRepository->create($attributes);
-        $token = Auth::guard("admin-api")->login($admin);
-        if (empty($token)) {
-            throw new Exception("Failed to login", Response::HTTP_UNAUTHORIZED);
-        }
 
-        return [
-            "admin" => $admin,
-            "token" => $token,
-        ];
+        return $admin;
     }
 
-    public function login(Request $request): string
+    public function login(array $attributes): array
     {
-        $attributes = $this->validateLogin->validate($request);
-
         $token =  Auth::guard("admin-api")->attempt($attributes);
 
         if (empty($token)) {
             throw new Exception("Invalid Credentials", Response::HTTP_UNAUTHORIZED);
         }
 
-        return $token;
+        return [
+            "token" => $token,
+            "expires_in" => auth()->guard("admin-api")->factory()->getTTL() . " seconds",
+        ];
     }
 
     public function logout(): void

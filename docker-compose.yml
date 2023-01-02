@@ -3,7 +3,7 @@ version: '3'
 services:
     laravel.test:
         build:
-            context: ./vendor/laravel/sail/runtimes/8.1
+            context: ./docker/8.1
             dockerfile: Dockerfile
             args:
                 WWWGROUP: '${WWWGROUP}'
@@ -41,7 +41,7 @@ services:
         networks:
             - sail
         healthcheck:
-            test: [ "CMD", "mysqladmin", "ping", "-p${DB_PASSWORD}" ]
+            test: ["CMD", "mysqladmin", "ping", "-p${DB_PASSWORD}"]
             retries: 3
             timeout: 5s
     phpmyadmin:
@@ -54,7 +54,7 @@ services:
         networks:
             - sail
         ports:
-            - 8001:80
+            - 8001:80 
 networks:
     sail:
         driver: bridge

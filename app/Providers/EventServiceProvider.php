@@ -27,13 +27,13 @@ class EventServiceProvider extends ServiceProvider
             SendEmailVerificationNotification::class,
         ],
         UserRegisteredEvent::class => [
-            // SendBlogAgreement::class,
+            SendBlogAgreement::class,
             EmailVerification::class,
         ],
         VerifyUserEvent::class => [
             // UserLogin::class,
+            UserProfile::class,
             SendWelcomeEmail::class,
-            UserProfile::class
             // ChooseNewUserTags::class,
         ],
     ];

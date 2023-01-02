@@ -6,15 +6,6 @@ use App\Models\Admin;
 
 class AdminResource extends BaseResource
 {
-    protected Admin $admin;
-    protected string $token;
-
-    public function __construct(Admin $admin, string $token)
-    {
-        $this->admin = $admin;
-        $this->token = $token;
-    }
-
     /**
      * Transform the resource into an array.
      *
@@ -24,9 +15,9 @@ class AdminResource extends BaseResource
     public function toArray($request)
     {
         return [
-            "id" => $this->admin->id,
-            "name" => $this->admin->first_name . " " . $this->admin->last_name,
-            "token" => $this->token,
+            "id" => $this->id,
+            "name" => $this->first_name . " " . $this->last_name,
+            "email" => $this->email,
         ];
     }
 }

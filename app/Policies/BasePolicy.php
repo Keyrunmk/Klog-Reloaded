@@ -26,39 +26,14 @@ class BasePolicy
     }
 
     /**
-     * Determine whether the user can view any models.
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Auth\Access\Response|bool
-     */
-    public function viewAny(User $user, Model $model)
-    {
-        return $user->id === $model->user->id;
-    }
-
-    /**
-     * Determine whether the user can view the model.
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Auth\Access\Response|bool
-     */
-    public function view(User $user, Model $model)
-    {
-        return $user->id === $model->user_id;
-    }
-
-    /**
      * Determine whether the user can create models.
      *
      * @param  \App\Models\User  $user
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function create(User $user)
+    public function create(User $user): bool
     {
-        if (auth()->user()->id === $user->id) {
-            return true;
-        }
-        return false;
+        return $user->hasPermissionThroughRole("user-access");
     }
 
     /**
@@ -67,7 +42,7 @@ class BasePolicy
      * @param  \App\Models\User  $user
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function update(User $user, Model $model)
+    public function update(User $user, Model $model): bool
     {
         return $user->id == $model->user_id;
     }
@@ -78,7 +53,7 @@ class BasePolicy
      * @param  \App\Models\User  $user
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function delete(User $user, Model $model)
+    public function delete(User $user, Model $model): bool
     {
         return $user->id === $model->user_id;
     }

@@ -25,6 +25,8 @@ class SendBlogAgreement
      */
     public function handle($event)
     {
-        //
+        return response()->json([
+            "here you can choose the tags you like."
+        ]);
     }
 }

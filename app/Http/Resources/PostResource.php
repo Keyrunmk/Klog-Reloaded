@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Post;
 class PostResource extends BaseResource
 {
     /**
@@ -17,6 +16,9 @@ class PostResource extends BaseResource
             "id" => $this->id,
             "title" => $this->title,
             "body" => $this->body,
+            "image" => new ImageResource($this->image),
+            "comments" => CommentResource::collection($this->comments),
+            "tags" => TagResource::collection($this->tags),
         ];
     }
 }
