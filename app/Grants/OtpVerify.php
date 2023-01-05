@@ -2,8 +2,11 @@
 
 namespace App\Grants;
 
+use App\Exceptions\OtpException;
 use App\Models\User;
 use App\Services\Oauth\OtpService;
+use Exception;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 
 class OtpVerify
@@ -15,18 +18,28 @@ class OtpVerify
         $this->otpService = $otpService;
     }
     
-    public function verify($otp): mixed
+    public function verify(string $hash, string $otp): bool
     {
         $user_otp = $otp;
-        $hash = Cache::get('hashKey');
-        $user = User::where('hash', $hash)->firstOrFail();
-        $secret= $this->otpService->getUserSecret($user);
+        $hash = Cache::get("hashKey.$hash");
+
+        if (!$hash) {
+            throw new Exception("Login session expired, retry");
+        }
+
+        $user = User::where("hash", $hash)->firstOrFail();
+        $secret= $user->secret;
+        if (!$secret) {
+            throw new Exception("TOTP secret not registered, try to enable 2FA again.");
+        }
         $otp = $this->otpService->generateOTP($secret);
 
-        if ($user_otp == $otp) {
-            return $user;
-        } else {
-            return false;
+        if ($user_otp !== $otp) {
+            throw new OtpException(
+                message: "OTP not valid!",
+                code: Response::HTTP_UNPROCESSABLE_ENTITY
+            );
         }
+        return true;
     }
 }

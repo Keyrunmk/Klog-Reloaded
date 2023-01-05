@@ -15,7 +15,7 @@ class OtpService
             if($user->secret) {
                 return $user->secret;
             }
-    
+            
             $mySecret = trim(Base32::encodeUpper(random_bytes(20)), '=');
             $otp = TOTP::createFromSecret($mySecret);
             $secret = $otp->getSecret();
@@ -30,7 +30,7 @@ class OtpService
                 'line' => $exception->getLine()
             ]);
         }
-
+    
         return $secret;
     }
 

@@ -2,11 +2,11 @@
 
 namespace App\Listeners;
 
-use App\Jobs\WelcomeUserEmailJob;
+use App\Jobs\LoggedInThroughPassportEmailJob;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class SendWelcomeEmail
+class UserLoggedIn
 {
     /**
      * Create the event listener.
@@ -26,6 +26,6 @@ class SendWelcomeEmail
      */
     public function handle($event)
     {
-        WelcomeUserEmailJob::dispatch($event->user);
+        LoggedInThroughPassportEmailJob::dispatch($event->user)->onQueue("login");
     }
 }

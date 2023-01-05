@@ -2,20 +2,29 @@
 
 namespace App\Listeners;
 
+use App\Enum\UserSourceEnum;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Mail\Message;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\Mail;
 
-class SendBlogAgreement
+class SendBlogAgreement implements ShouldQueue
 {
     /**
-     * Create the event listener.
+     * The name of the queue the job should be sent to.
      *
-     * @return void
+     * @var string|null
      */
-    public function __construct()
-    {
-        //
-    }
+    public $queue = 'register';
+
+    /**
+     * The number of times the queued listener may be attempted.
+     *
+     * @var int
+     */
+    public $tries = 3;
+
+    public $afterCommit = true;
 
     /**
      * Handle the event.
@@ -25,8 +34,17 @@ class SendBlogAgreement
      */
     public function handle($event)
     {
-        return response()->json([
-            "here you can choose the tags you like."
-        ]);
+        Mail::raw("Registered in Klog " . now(), function (Message $message) {
+            $message->to("example@gmail.com")
+                ->from("klog@gmail.com");
+        });
+    }
+
+    /**
+     * Determine whether the listener should be queued.
+     */
+    public function shouldQueue($event)
+    {
+        return $event->user->source == UserSourceEnum::Foreign ? true : false;
     }
 }

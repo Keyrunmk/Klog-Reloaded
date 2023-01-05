@@ -50,7 +50,6 @@ class PostService extends BaseService
         if ($imagePath ?? false) {
             $this->postRepository->saveImage($post, $imagePath);
         }
-        // Cache::forget("posts");
 
         return $post;
     }
@@ -121,17 +120,6 @@ class PostService extends BaseService
     {
         $post = $this->postRepository->findOneOrFail($post_id);
         $this->postRepository->saveTag($post, $attributes);
-    }
-
-    public function deleteImage(Post $post): void
-    {
-        if ($post->image) {
-            if (Storage::disk("local")->exists("public/" . $post->image->path)) {
-                if (Storage::disk("local")->delete("public/" . $post->image->path)) {
-                    $post->image()->delete();
-                };
-            }
-        }
     }
 
     public function checkForPermission(Post $post): void

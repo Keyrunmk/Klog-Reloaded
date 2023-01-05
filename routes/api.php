@@ -2,8 +2,7 @@
 
 use App\Http\Controllers\AuthenticationController;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\RedirectController;
-use App\Http\Controllers\Oauth\CallbackController;
+use App\Http\Controllers\Oauth\OauthController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request;
@@ -25,15 +24,16 @@ Route::middleware("auth:sanctum")->get("/user", function (Request $request) {
     return $request->user();
 });
 
-// Passport
-// Route::get("loginRedirect", RedirectController::class, "login");
-// Route::get("callback", CallbackController::class);
+Route::get("redirect", [OauthController::class, "redirect"]);
+Route::get("callback", [OauthController::class, "registerOutSourceUser"]);
 
 // Home
 Route::get("/", [HomeController::class, "index"]);
 
 //login and registration
-Route::post("login", [AuthenticationController::class, "login"]);
+Route::middleware(["throttle:login"])->group(function () {
+    Route::post("login", [AuthenticationController::class, "login"]);
+});
 Route::post("register", [AuthenticationController::class, "register"]);
 Route::post("verify-email/{user_id}", [AuthenticationController::class, "verify"]);
 Route::post("logout", [AuthenticationController::class, "logout"])->middleware("auth:api");

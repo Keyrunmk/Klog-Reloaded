@@ -2,12 +2,14 @@
 
 namespace App\Providers;
 
+use App\Events\UserLoggedInEvent;
 use App\Events\UserRegisteredEvent;
 use App\Events\VerifyUserEvent;
 use App\Listeners\ChooseNewUserTags;
 use App\Listeners\EmailVerification;
 use App\Listeners\SendBlogAgreement;
 use App\Listeners\SendWelcomeEmail;
+use App\Listeners\UserLoggedIn;
 use App\Listeners\UserLogin;
 use App\Listeners\UserProfile;
 use Illuminate\Auth\Events\Registered;
@@ -27,14 +29,17 @@ class EventServiceProvider extends ServiceProvider
             SendEmailVerificationNotification::class,
         ],
         UserRegisteredEvent::class => [
-            SendBlogAgreement::class,
             EmailVerification::class,
+            SendBlogAgreement::class,
         ],
         VerifyUserEvent::class => [
             // UserLogin::class,
             UserProfile::class,
             SendWelcomeEmail::class,
             // ChooseNewUserTags::class,
+        ],
+        UserLoggedInEvent::class => [
+            UserLoggedIn::class,
         ],
     ];
 
@@ -45,7 +50,6 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
     }
 
     /**

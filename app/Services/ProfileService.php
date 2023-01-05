@@ -6,10 +6,13 @@ use App\Contracts\ProfileContract;
 use App\Http\Requests\ProfileRequest;
 use App\Models\Profile;
 use App\Repositories\ProfileRepository;
+use App\Traits\ImageTrait;
 use Intervention\Image\Facades\Image;
 
 class ProfileService
 {
+    use ImageTrait;
+
     protected ProfileRequest $profileValidate;
     protected ProfileRepository $profileRepository;
 
@@ -23,21 +26,18 @@ class ProfileService
         return $this->profileRepository->findOneOrFail($profile_id);
     }
 
-    public function update(Profile $profile, array $request): Profile
+    public function update(Profile $profile, array $attributes): Profile
     {
-        $this->profileRepository->updateProfile($profile, $request);
+        $this->deleteProfileImage($profile);
 
-        if (request("image")) {
-            $imagePath = request("image")->store("uploads", "public");
-            $image = Image::make(public_path("storage/$imagePath"))->fit(2000, 2000);
-            $image->save();
-        }
-
-        if ($imagePath ?? false) {
+        if ($attributes["image"] ?? false) {
+            unset($attributes["image"]);
+            $imagePath = $this->getImagePath();
             if (!$profile->image()->update(["path" => $imagePath])) {
                 $profile->image()->create(["path" => $imagePath]);
             }
         }
+        $this->profileRepository->updateProfile($profile, $attributes);
 
         return $profile;
     }
@@ -51,5 +51,10 @@ class ProfileService
         }
 
         return "Unfollowed profile id " . $response["detached"][0];
+    }
+
+    public function deleteProfileImage(Profile $profile): void
+    {
+        $this->deleteImage($profile);
     }
 }

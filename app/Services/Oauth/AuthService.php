@@ -2,6 +2,7 @@
 
 namespace App\Services\Oauth;
 
+use App\Events\UserLoggedInEvent;
 use App\Exceptions\NotFoundException;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -37,19 +38,21 @@ class AuthService extends OtpService
 
     public function login(array $attributes): mixed
     {
-        if (! Auth::guard("web")->attempt($attributes)) {
+        if (!Auth::guard("web")->attempt($attributes)) {
             throw new NotFoundException("User Not Found.");
         }
-        
+
         $user = Auth::guard("web")->user();
 
         if ($user->is2Fa) {
             $hash = Hash::make(rand(000000, 999999));
-            Cache::put(["hashKey" => $hash], now()->addSeconds(120));
+            Cache::put(["hashKey.$hash" => $hash], now()->addSeconds(120));
             $user->hash = $hash;
             $user->save();
-
-            return $hash;
+            return [
+                "hash" => $hash,
+                "code" => $this->getUserSecret($user),
+            ];
         }
 
         $accessTokenData = $this->generateToken($attributes);
@@ -61,8 +64,11 @@ class AuthService extends OtpService
 
     public function logout(): void
     {
-        $tokenId = Auth::user()->token()->id;
+        $user = Auth::user();
+        $tokenId = $user->token()->id;
         $this->accessTokenController->revokeToken($tokenId);
+        $user->access_token = "";
+        $user->save();
     }
 
     public function generateToken(array $attributes): array
@@ -70,7 +76,7 @@ class AuthService extends OtpService
         $payload = [
             "grant_type" => "password",
             "client_id" => env("OAUTH_CLIENT_ID"),
-            "client_secret" => env("OAUTH_SECRET"),
+            "client_secret" => env("OAUTH_CLIENT_SECRET"),
             "username" => $attributes["email"],
             "password" => $attributes["password"],
             "scope" => "*"
@@ -85,35 +91,35 @@ class AuthService extends OtpService
 
     public function verifyOtp(Request $request): mixed
     {
-        $user_otp = $request->code;
-        $hash = Cache::get('hashKey');
+        $hash = Cache::get("hashKey.$request->hash");
         if (!$hash) {
             throw new NotFoundException();
         }
-        $user = User::where('hash', $hash)->firstOrFail();
-        $secret= $this->getUserSecret($user);
-        
-        $otp = $this->generateOTP($secret);
+        $user = User::where("hash", $hash)->firstOrFail();
 
-        if ($user_otp === $otp) {
-            $payload = [
-                'grant_type' => "custom_grant",
-                'client_id' => env("OAUTH_CLIENT_ID"),
-                'client_secret' => env("OAUTH_SECRET"),
-                'username' => $user->email,
-                'password' => '',
-                'otp' => $request->code
-            ];
+        $accessTokenData = $this->customAccessToken($hash, $request);
 
-            $data = $this->accessTokenController->issueToken($this->psrRequest->withParsedBody($payload));
-            $result = json_decode((string) $data->getContent(), true);
-            
-            $user->access_token = $result['access_token'];
+        if (isset($accessTokenData["access_token"])) {
+            $user->access_token = $accessTokenData["access_token"];
             $user->save();
-            unset($result['refresh_token']);
-            return $result;
-        } else {
-            return "Otp Not Valid";
+
+            UserLoggedInEvent::dispatch($user);
         }
+
+        return $accessTokenData;
     }
-} 
+
+    public function customAccessToken(string $hash, Request $request): array
+    {
+        $payload = [
+            "grant_type" => "custom_grant",
+            "client_id" => env("OAUTH_CLIENT_ID"),
+            "client_secret" => env("OAUTH_CLIENT_SECRET"),
+            "hash" => $hash,
+            "otp" => $request->code
+        ];
+
+        $data = $this->accessTokenController->issueToken($this->psrRequest->withParsedBody($payload));
+        return json_decode((string) $data->getContent(), true);
+    }
+}

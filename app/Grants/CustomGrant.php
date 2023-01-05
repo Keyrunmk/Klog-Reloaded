@@ -2,18 +2,17 @@
 
 namespace App\Grants;
 
-use App\Exceptions\OtpException;
+use Laravel\Passport\Bridge\User;
 use DateInterval;
 use League\OAuth2\Server\Entities\ClientEntityInterface;
 use League\OAuth2\Server\Entities\UserEntityInterface;
 use League\OAuth2\Server\Exception\OAuthServerException;
 use League\OAuth2\Server\Grant\AbstractGrant;
-use League\OAuth2\Server\Repositories\UserRepositoryInterface;
 use League\OAuth2\Server\RequestAccessTokenEvent;
 use League\OAuth2\Server\RequestEvent;
 use League\OAuth2\Server\ResponseTypes\ResponseTypeInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Symfony\Component\HttpFoundation\Response;
+use RuntimeException;
 
 /**
  * Custom grant class.
@@ -21,12 +20,9 @@ use Symfony\Component\HttpFoundation\Response;
 class CustomGrant extends AbstractGrant
 {
     protected OtpVerify $otpVerifier;
-    /**
-     * @param UserRepositoryInterface $userRepository
-     */
-    public function __construct(UserRepositoryInterface $userRepository, OtpVerify $otpVerifier)
+
+    public function __construct(OtpVerify $otpVerifier)
     {
-        $this->setUserRepository($userRepository);
         $this->otpVerifier = $otpVerifier;
     }
 
@@ -34,8 +30,7 @@ class CustomGrant extends AbstractGrant
         ServerRequestInterface $request,
         ResponseTypeInterface $responseType,
         DateInterval $accessTokenTTL
-    ): mixed
-    {
+    ): mixed {
         // Validate request
         $client = $this->validateClient($request);
         $scopes = $this->validateScopes($this->getRequestParameter('scope', $request, $this->defaultScope));
@@ -63,36 +58,20 @@ class CustomGrant extends AbstractGrant
     protected function validateUser(ServerRequestInterface $request, ClientEntityInterface $client): UserEntityInterface
     {
         $otp = $this->getRequestParameter('otp', $request);
+        $hash = $this->getRequestParameter('hash', $request);
 
         if (is_null($otp)) {
             throw OAuthServerException::invalidRequest('otp');
         }
 
-        $isValidOtp = $this->otpVerifier->verify($otp);
+        $this->otpVerifier->verify($hash, $otp);
 
-        if (!$isValidOtp) {
-            throw new OtpException(
-                message: 'OTP not valid!',
-                code: Response::HTTP_UNPROCESSABLE_ENTITY
-            );
+        if (!\is_string($hash)) {
+            throw OAuthServerException::invalidRequest('hash');
         }
 
-        $username = $this->getRequestParameter('username', $request);
-
-        if (!\is_string($username)) {
-            throw OAuthServerException::invalidRequest('username');
-        }
-
-        $password = $this->getRequestParameter('password', $request);
-
-        if (!\is_string($password)) {
-            throw OAuthServerException::invalidRequest('password');
-        }
-
-        $user = $this->userRepository->getUserEntityByUserCredentials(
-            $username,
-            $password,
-            $this->getIdentifier(),
+        $user = $this->getUserEntityByUserHash(
+            $hash,
             $client
         );
 
@@ -103,6 +82,23 @@ class CustomGrant extends AbstractGrant
         }
 
         return $user;
+    }
+
+    public function getUserEntityByUserHash(string $hash, ClientEntityInterface $clientEntity)
+    {
+        $provider = $clientEntity->provider ?: config('auth.guards.api.provider');
+
+        if (is_null($model = config('auth.providers.' . $provider . '.model'))) {
+            throw new RuntimeException('Unable to determine authentication model from configuration.');
+        }
+
+        $user = (new $model)->where('hash', $hash)->first();
+
+        if (is_null($user)) {
+            return;
+        }
+
+        return new User($user->getAuthIdentifier());
     }
 
     public function getIdentifier()

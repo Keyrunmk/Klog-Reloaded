@@ -9,6 +9,7 @@ use App\Services\ProfileService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
 
 class ProfileController extends BaseController
 {
@@ -32,13 +33,16 @@ class ProfileController extends BaseController
 
     public function update(int $profile_id, ProfileRequest $request): JsonResponse
     {
+        DB::beginTransaction();
         try {
             $profile = $this->profileService->find($profile_id);
             $this->authorize("update", $profile);
             $profile = $this->profileService->update($profile, $request->all());
         } catch (Exception $exception) {
+            DB::rollBack();
             return $this->handleException($exception);
         }
+        DB::commit();
 
         return $this->successResponse(message: "Profile updated", data: $this->resource($profile));
     }

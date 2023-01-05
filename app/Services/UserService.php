@@ -23,7 +23,6 @@ class UserService extends BaseService
 
     public function register(array $attributes): User
     {
-        // $start = microtime(true);
         $attributes["password"] = Hash::make($attributes["password"]);
         $location_id = $this->getLocation()->id;
         $role_id = Cache::remember("role_user", 86400, function () {
@@ -36,9 +35,7 @@ class UserService extends BaseService
         ]);
 
         $user = $this->userRepository->create($attributes);
-        // $end = microtime(true);
-        // $time = $end-$start;
-        // Log::info("registerTime", ["timeRegister" => $time]);
+
         return $user;
     }
 

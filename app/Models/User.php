@@ -14,11 +14,9 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Hash;
 use Laravel\Passport\HasApiTokens;
-use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable implements JWTSubject
+class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRolesAndPermissions;
 
@@ -35,6 +33,7 @@ class User extends Authenticatable implements JWTSubject
         "role_id",
         "location_id",
         "status",
+        "source",
         "password",
         "secret",
         "hash",
@@ -60,36 +59,6 @@ class User extends Authenticatable implements JWTSubject
     protected $casts = [
         "email_verified_at" => "datetime",
     ];
-
-    /**
-     * Get the identifier that will be stored in the subject claim of the JWT.
-     *
-     */
-    public function getJWTIdentifier(): mixed
-    {
-        return $this->getKey();
-    }
-
-    /**
-     * Return a key value array, containing any custom claims to be added to the JWT.
-     *
-     */
-    public function getJWTCustomClaims(): mixed
-    {
-        return [];
-    }
-
-    // public static function boot(): void
-    // {
-    //     parent::boot();
-
-    //     static::created(function ($user) {
-    //         $user->profile()->create([
-    //             "title" => $user->username,
-    //         ]);
-    //     });
-    // }
-    // switch to observer
 
     public function profile(): HasOne
     {
@@ -124,20 +93,5 @@ class User extends Authenticatable implements JWTSubject
     public function UserVerification(): HasOne
     {
         return $this->hasOne(UserVerification::class);
-    }
-
-    /**
-     * Validate the password of the user for the Passport password grant.
-     *
-     * @param  string  $password
-     * @return bool
-     */
-    public function validateForPassportPasswordGrant($password): bool
-    {
-        if ($password) {
-            return Hash::check($password, $this->password);
-        }
-
-        return true;
     }
 }
