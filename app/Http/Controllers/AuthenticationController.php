@@ -2,83 +2,105 @@
 
 namespace App\Http\Controllers;
 
+use App\Enum\UserSourceEnum;
 use App\Events\UserRegisteredEvent;
 use App\Events\VerifyUserEvent;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\TokenRequest;
+use App\Http\Resources\UserResource;
+use App\Services\Oauth\AuthService;
 use App\Services\UserService;
 use Exception;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class AuthenticationController extends BaseController
 {
     protected UserService $userService;
+    protected AuthService $authService;
 
-    public function __construct(UserService $userService)
+    public function __construct(UserService $userService, AuthService $authService)
     {
         $this->userService = $userService;
-        $this->middleware("guest:api")->only(["login", "register", "verify"]);
+        $this->authService = $authService;
+        $this->middleware("guest:api")->only(["login", "register", "verify", "verifyOtp"]);
         $this->middleware("auth:api")->only(["logout", "refreshToken"]);
     }
 
-    public function register(Request $request): mixed
+    public function register(RegisterRequest $request): JsonResponse
     {
+        DB::beginTransaction();
         try {
-            $user = $this->userService->register($request);
+            $attributes = array_merge($request->all(), [
+                "source" => UserSourceEnum::Local,
+            ]);
+            $user = $this->userService->register($attributes);
         } catch (Exception $exception) {
+            DB::rollBack();
             return $this->handleException($exception);
         }
+        DB::commit();
 
-        return UserRegisteredEvent::dispatch($user);
+        UserRegisteredEvent::dispatch($user);
+
+        return $this->successResponse("Welcome", new UserResource("Check your mail to verify account", $user));
     }
 
-    public function verify(int $user_id, Request $request): JsonResponse
+    public function verify(int $user_id, TokenRequest $request): JsonResponse
     {
+        DB::beginTransaction();
         try {
-            $data = $this->userService->verify($user_id, $request);
+            $data = $this->userService->verify($user_id, $request->all());
             VerifyUserEvent::dispatch($data["user"]);
-        } catch (ModelNotFoundException $exception) {
-            return $this->errorResponse("Wrong token");
         } catch (Exception $exception) {
-            $this->userService->retry($user_id);
+            DB::rollBack();
+            try {
+                $this->userService->retry($user_id);
+            } catch (Exception $exception) {
+                return $this->handleException($exception);
+            }
             return $this->handleException($exception);
         }
+        DB::commit();
 
         return $this->successResponse($data["message"]);
     }
 
-    public function login(Request $request): JsonResponse
+    public function verifyOtp(Request $request)
     {
         try {
-            $token = $this->userService->login($request);
-        } catch (ModelNotFoundException $exception) {
-            return $this->errorResponse("No user with given email address", (int) $exception->getCode());
+            $data = $this->authService->verifyOtp($request);
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
 
-        // Cache::flush();
+        return $data;
+    }
+
+    public function login(LoginRequest $request): JsonResponse
+    {
+        try {
+            $token = $this->authService->login($request->all());
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+
         return $this->successResponse($token);
     }
 
     public function logout(): JsonResponse
     {
+        DB::beginTransaction();
         try {
-            $this->userService->logout();
+            $this->authService->logout();
         } catch (Exception $exception) {
+            DB::rollBack();
             return $this->handleException($exception);
         }
+        DB::commit();
 
         return $this->successResponse("Logged out successfully");
-    }
-
-    public function refreshToken(): JsonResponse
-    {
-        try {
-            return $this->successResponse($this->userService->refreshToken());
-        } catch (Exception $exception) {
-            return $this->handleException($exception);
-        }
     }
 }

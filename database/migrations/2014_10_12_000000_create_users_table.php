@@ -22,7 +22,9 @@ return new class extends Migration
             $table->timestamp("email_verified_at")->nullable();
             $table->string("password")->min(8);
             $table->enum("status", ["active", "inactive", "pending"])->default("inactive");
+            $table->enum("source", ["local", "foreign"]);
             $table->integer("role_id");
+            $table->foreignId("location_id")->constrained()->nulllable();
             $table->rememberToken();
             $table->timestamps();
 

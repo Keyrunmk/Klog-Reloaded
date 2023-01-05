@@ -15,12 +15,10 @@ return new class extends Migration
     {
         Schema::create('locations', function (Blueprint $table) {
             $table->id();
-            $table->string("country_name")->default("world");
-            $table->integer("locationable_id");
-            $table->string("locationable_type");
+            $table->string("country_name")->unique();
             $table->timestamps();
 
-            $table->index(["country_name", "locationable_id", "locationable_type"]);
+            $table->index(["country_name"]);
         });
     }
 

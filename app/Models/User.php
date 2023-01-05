@@ -6,17 +6,17 @@ namespace App\Models;
 
 use App\Traits\HasRolesAndPermissions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
-use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable implements JWTSubject
+class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRolesAndPermissions;
 
@@ -31,7 +31,14 @@ class User extends Authenticatable implements JWTSubject
         "username",
         "email",
         "role_id",
+        "location_id",
+        "status",
+        "source",
         "password",
+        "secret",
+        "hash",
+        "is2Fa",
+        "access_token"
     ];
 
     /**
@@ -53,36 +60,6 @@ class User extends Authenticatable implements JWTSubject
         "email_verified_at" => "datetime",
     ];
 
-    /**
-     * Get the identifier that will be stored in the subject claim of the JWT.
-     *
-     */
-    public function getJWTIdentifier(): mixed
-    {
-        return $this->getKey();
-    }
-
-    /**
-     * Return a key value array, containing any custom claims to be added to the JWT.
-     *
-     */
-    public function getJWTCustomClaims(): mixed
-    {
-        return [];
-    }
-
-    // public static function boot(): void
-    // {
-    //     parent::boot();
-
-    //     static::created(function ($user) {
-    //         $user->profile()->create([
-    //             "title" => $user->username,
-    //         ]);
-    //     });
-    // }
-    // switch to observer
-
     public function profile(): HasOne
     {
         return $this->hasOne(Profile::class);
@@ -93,19 +70,19 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Post::class)->orderBy("created_at", "DESC");
     }
 
-    // public function image(): MorphOne
-    // {
-    //     return $this->morphOne(Image::class, "imageable");
-    // }
+    public function image(): MorphOne
+    {
+        return $this->morphOne(Image::class, "imageable");
+    }
 
     public function tags(): MorphToMany
     {
         return $this->morphToMany(Tag::class, "taggable");
     }
 
-    public function location(): MorphMany
+    public function location(): BelongsTo
     {
-        return $this->morphMany(Location::class, "locationable");
+        return $this->belongsTo(Location::class);
     }
 
     public function following(): BelongsToMany

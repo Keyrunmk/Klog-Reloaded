@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Exceptions\NotFoundException;
+use App\Http\Requests\ProfileRequest;
 use App\Http\Resources\ProfileResource;
+use App\Models\Profile;
 use App\Services\ProfileService;
 use Exception;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
 
 class ProfileController extends BaseController
 {
@@ -26,34 +27,39 @@ class ProfileController extends BaseController
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
-        return $this->successResponse(message: "Profile id: $profile_id", data: new ProfileResource($profile));
+
+        return $this->successResponse(message: "Profile id: $profile_id", data: $this->resource($profile));
     }
 
-    public function update(int $profile_id, Request $request): JsonResponse
+    public function update(int $profile_id, ProfileRequest $request): JsonResponse
     {
+        DB::beginTransaction();
         try {
             $profile = $this->profileService->find($profile_id);
             $this->authorize("update", $profile);
-            $profile = $this->profileService->update($profile, $request);
-        } catch (ModelNotFoundException $exception) {
-            return $this->errorResponse("No profile with id: $profile_id", (int) $exception->getCode());
+            $profile = $this->profileService->update($profile, $request->all());
         } catch (Exception $exception) {
+            DB::rollBack();
             return $this->handleException($exception);
         }
+        DB::commit();
 
-        return $this->successResponse(message: "Profile updated", data: new ProfileResource($profile));
+        return $this->successResponse(message: "Profile updated", data: $this->resource($profile));
     }
 
     public function follow(int $profile_id): JsonResponse
     {
         try {
             $response = $this->profileService->followProfile($profile_id);
-        } catch (NotFoundException $exception) {
-            return $this->errorResponse("Couldn't find the profile to follow", (int) $exception->getCode());
         } catch (Exception $exception) {
-            return $this->errorResponse("Something went wrong", (int)$exception->getCode());
+            return $this->handleException($exception);
         }
 
         return $this->successResponse($response);
+    }
+
+    public function resource(Profile $data): JsonResource
+    {
+        return new ProfileResource($data);
     }
 }

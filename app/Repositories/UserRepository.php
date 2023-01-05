@@ -15,12 +15,6 @@ class UserRepository extends BaseRepository implements UserContract
         parent::__construct($model);
     }
 
-    public function setLocation(User $user): void
-    {
-        $userLocation = UserLocation::getCountryName();
-        $user->location()->create(["country_name" => $userLocation]);
-    }
-
     public function findWhere(string $email, UserStatusEnum $status): mixed
     {
         return $this->model->where("email", $email)->where("status", $status)->first();
@@ -42,5 +36,10 @@ class UserRepository extends BaseRepository implements UserContract
         $user->email_verified_at = now();
         $user->status = UserStatusEnum::Active;
         $user->save();
+    }
+
+    public function deleteInactiveUser(int $user_id): void
+    {
+        $this->model->findOrFail($user_id)->where("status", "inactive")->delete();
     }
 }

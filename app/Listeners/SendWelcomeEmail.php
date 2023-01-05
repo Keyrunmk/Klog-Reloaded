@@ -26,6 +26,6 @@ class SendWelcomeEmail
      */
     public function handle($event)
     {
-        dispatch(new WelcomeUserEmailJob($event->user));
+        WelcomeUserEmailJob::dispatch($event->user);
     }
 }
